@@ -90,6 +90,15 @@ React runs on http://localhost:5173 — open this in your browser.
 
 ---
 
+## Verify everything is working
+
+After starting both servers:
+- Backend health check → http://localhost:4000/api/health (should return `{"status":"ok"}`)
+- Frontend → http://localhost:5173
+- Database viewer → http://localhost:5555 (run `npx prisma studio` first)
+
+---
+
 ## Day-to-day commands
 
 ```bash
@@ -99,7 +108,7 @@ docker-compose up -d
 # Stop database
 docker-compose down
 
-# View database visually
+# View database visually (opens http://localhost:5555)
 cd backend && npx prisma studio
 
 # Re-seed (wipe and refill fake data)
