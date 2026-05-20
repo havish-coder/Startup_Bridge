@@ -1,0 +1,4 @@
+/* Tailwind's three layers — this is all you need to activate the full framework */
+@tailwind base;       /* Reset + sensible browser defaults */
+@tailwind components; /* Slot for @layer components{} blocks if you write any */
+@tailwind utilities;  /* Every utility class: flex, p-4, text-blue-500, etc. */

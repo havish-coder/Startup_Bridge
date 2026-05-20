@@ -1,0 +1,226 @@
+// Prisma schema — StartupBridge v1
+// 7 models. Run: npx prisma migrate dev --name init
+// View data: npx prisma studio
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  admin
+  investor
+  startup
+}
+
+enum UserStatus {
+  pending
+  approved
+  suspended
+}
+
+enum Domain {
+  FinTech
+  EdTech
+  HealthTech
+  D2C
+  SaaS
+  Other
+}
+
+enum PitchStatus {
+  draft
+  published
+  in_negotiation
+  closed
+  withdrawn
+}
+
+enum InterestStatus {
+  pending
+  accepted
+  denied
+}
+
+enum NegotiationStatus {
+  open
+  pending_admin_close
+  concluded
+  failed
+}
+
+enum NotificationType {
+  user_approved
+  interest_new
+  interest_accepted
+  interest_denied
+  message_new
+  negotiation_concluded
+}
+
+enum FileScope {
+  pitch_deck
+  misc
+}
+
+// ─────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────
+
+model User {
+  id            String     @id @default(uuid())
+  name          String
+  email         String     @unique
+  passwordHash  String     @map("password_hash")
+  role          Role
+  status        UserStatus @default(pending)
+  contactPhone  String?    @map("contact_phone")
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  // Relations (a user can appear in many roles across the system)
+  pitches        Pitch[]         @relation("StartupPitches")
+  interestsSent  Interest[]      @relation("InvestorInterests")
+  negotiationsAsInvestor Negotiation[] @relation("InvestorNegotiations")
+  negotiationsAsStartup  Negotiation[] @relation("StartupNegotiations")
+  messagesSent   Message[]
+  notifications  Notification[]
+  files          File[]
+
+  @@index([status, role])
+  @@map("users")
+}
+
+model Pitch {
+  id            String      @id @default(uuid())
+  startupId     String      @map("startup_id")
+  title         String
+  problem       String
+  solution      String
+  fundingAmount BigInt      @map("funding_amount")
+  equityPercent Decimal     @map("equity_percent") @db.Decimal(5, 2)
+  domain        Domain
+  status        PitchStatus @default(draft)
+  deckFileId    String?     @map("deck_file_id")
+  publishedAt   DateTime?   @map("published_at")
+  closedAt      DateTime?   @map("closed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  startup   User       @relation("StartupPitches", fields: [startupId], references: [id])
+  deckFile  File?      @relation("PitchDeck", fields: [deckFileId], references: [id])
+  interests Interest[]
+  negotiations Negotiation[]
+
+  @@index([startupId])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([domain, status])
+  @@map("pitches")
+}
+
+model Interest {
+  id                 String         @id @default(uuid())
+  investorId         String         @map("investor_id")
+  pitchId            String         @map("pitch_id")
+  proposedAmount     BigInt         @map("proposed_amount")
+  proposedEquityPct  Decimal        @map("proposed_equity_pct") @db.Decimal(5, 2)
+  message            String
+  status             InterestStatus @default(pending)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  respondedAt        DateTime?      @map("responded_at")
+
+  // Relations
+  investor     User          @relation("InvestorInterests", fields: [investorId], references: [id])
+  pitch        Pitch         @relation(fields: [pitchId], references: [id])
+  negotiation  Negotiation?
+
+  // One investor can only have one pending interest per pitch
+  @@unique([pitchId, investorId])
+  @@index([pitchId, status])
+  @@index([investorId, status])
+  @@map("interests")
+}
+
+model Negotiation {
+  id              String            @id @default(uuid())
+  pitchId         String            @map("pitch_id")
+  investorId      String            @map("investor_id")
+  startupId       String            @map("startup_id")
+  interestId      String            @unique @map("interest_id")
+  status          NegotiationStatus @default(open)
+  finalAmount     BigInt?           @map("final_amount")
+  finalEquityPct  Decimal?          @map("final_equity_pct") @db.Decimal(5, 2)
+  finalTermsNote  String?           @map("final_terms_note")
+  openedAt        DateTime          @default(now()) @map("opened_at")
+  concludedAt     DateTime?         @map("concluded_at")
+
+  // Relations
+  pitch    Pitch    @relation(fields: [pitchId], references: [id])
+  investor User     @relation("InvestorNegotiations", fields: [investorId], references: [id])
+  startup  User     @relation("StartupNegotiations", fields: [startupId], references: [id])
+  interest Interest @relation(fields: [interestId], references: [id])
+  messages Message[]
+
+  @@index([status])
+  @@index([pitchId])
+  @@map("negotiations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  negotiationId  String   @map("negotiation_id")
+  senderId       String   @map("sender_id")
+  content        String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  negotiation Negotiation @relation(fields: [negotiationId], references: [id])
+  sender      User        @relation(fields: [senderId], references: [id])
+
+  // Index for the ?since=timestamp polling query
+  @@index([negotiationId, createdAt(sort: Asc)])
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String
+  linkUrl   String           @map("link_url")
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model File {
+  id           String    @id @default(uuid())
+  ownerUserId  String    @map("owner_user_id")
+  storageKey   String    @map("storage_key")   // path under ./uploads/
+  originalName String    @map("original_name")
+  mime         String
+  sizeBytes    BigInt    @map("size_bytes")
+  scope        FileScope
+  uploadedAt   DateTime  @default(now()) @map("uploaded_at")
+
+  // Relations
+  owner      User    @relation(fields: [ownerUserId], references: [id])
+  pitchDecks Pitch[] @relation("PitchDeck")
+
+  @@index([ownerUserId])
+  @@map("files")
+}
