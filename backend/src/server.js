@@ -10,6 +10,7 @@ import investorPitchRoutes from './routes/investor/pitches.js'
 import investorInterestRoutes from './routes/investor/interests.js'
 import fileRoutes from './routes/files.js'
 import notificationRoutes from './routes/notifications.js'
+import adminRoutes from './routes/admin.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 dotenv.config()
@@ -45,6 +46,7 @@ app.use('/api/investor/pitches', investorPitchRoutes)
 app.use('/api/investor/interests', investorInterestRoutes)
 app.use('/api/files', fileRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Error handler — MUST be last
 app.use(errorHandler)

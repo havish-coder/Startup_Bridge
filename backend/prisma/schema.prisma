@@ -83,8 +83,9 @@ model User {
   passwordHash  String     @map("password_hash")
   role          Role
   status        UserStatus @default(pending)
-  contactPhone  String?    @map("contact_phone")
-  createdAt     DateTime   @default(now()) @map("created_at")
+  contactPhone      String?    @map("contact_phone")
+  verificationNote  String?    @map("verification_note")  // startup: business description, investor: background
+  createdAt         DateTime   @default(now()) @map("created_at")
 
   // Relations (a user can appear in many roles across the system)
   pitches        Pitch[]         @relation("StartupPitches")

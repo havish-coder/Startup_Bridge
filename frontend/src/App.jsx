@@ -12,11 +12,17 @@ import Feed from './pages/investor/Feed'
 import PitchView from './pages/investor/PitchView'
 import MyInterests from './pages/investor/MyInterests'
 
+// Admin pages
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminNegotiations from './pages/admin/AdminNegotiations'
+import AdminMessages from './pages/admin/AdminMessages'
+
 // Role-based redirect from /dashboard
 function DashboardRedirect() {
   const { user } = useAuth()
   if (user?.role === 'investor') return <Navigate to="/investor/feed" replace />
-  // Other roles stay on /dashboard (their pages will be added by other devs)
+  if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />
   return <Dashboard />
 }
 
@@ -40,6 +46,12 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Admin routes */}
+          <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/negotiations" element={<ProtectedRoute><AdminNegotiations /></ProtectedRoute>} />
+          <Route path="/admin/negotiations/:id/messages" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
 
           {/* Investor routes */}
           <Route

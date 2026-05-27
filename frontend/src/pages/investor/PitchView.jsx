@@ -134,24 +134,18 @@ export default function PitchView() {
             </div>
           </div>
 
-          {hasInterest ? (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-1">Problem</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{pitch.problem}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-1">Solution</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{pitch.solution}</p>
-              </div>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">Problem</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">{pitch.problem}</p>
             </div>
-          ) : (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-              Express interest to unlock the full pitch — problem statement, solution, and pitch deck.
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">Solution</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">{pitch.solution}</p>
             </div>
-          )}
+          </div>
 
-          {hasInterest && pitch.deckFile && (
+          {pitch.deckFile && (
             <div className="mt-6 pt-4 border-t border-gray-100">
               <a
                 href={`/api/files/${pitch.deckFile.id}`}

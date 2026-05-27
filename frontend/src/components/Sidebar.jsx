@@ -17,23 +17,21 @@ export default function Sidebar() {
   return (
     <aside className="w-56 bg-white border-r border-gray-200 p-4">
       <nav className="space-y-1">
-        {/* Investor links */}
-        {user?.role === 'investor' && (
+        {user?.role === 'admin' && (
           <>
-            <NavLink to="/investor/feed" className={linkClass}>
-              Browse Pitches
-            </NavLink>
-            <NavLink to="/investor/interests" className={linkClass}>
-              My Interests
-            </NavLink>
+            <NavLink to="/admin/dashboard" className={linkClass}>Dashboard</NavLink>
+            <NavLink to="/admin/users" className={linkClass}>Users</NavLink>
+            <NavLink to="/admin/negotiations" className={linkClass}>Negotiations</NavLink>
           </>
         )}
-
-        {/* Other roles — placeholder until their devs add pages */}
-        {user?.role !== 'investor' && (
-          <NavLink to="/dashboard" className={linkClass}>
-            Dashboard
-          </NavLink>
+        {user?.role === 'investor' && (
+          <>
+            <NavLink to="/investor/feed" className={linkClass}>Browse Pitches</NavLink>
+            <NavLink to="/investor/interests" className={linkClass}>My Interests</NavLink>
+          </>
+        )}
+        {user?.role === 'startup' && (
+          <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
         )}
       </nav>
       <p className="mt-6 px-4 text-xs text-gray-400">Signed in as {user?.role}</p>

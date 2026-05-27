@@ -72,28 +72,12 @@ router.get('/:id', async (req, res, next) => {
       },
     })
 
-    // No interest yet — return card-level data only so the investor can
-    // see enough to decide, but not the full pitch (problem/solution/deck).
-    if (!interest) {
-      return res.json({
-        pitch: {
-          id: pitch.id,
-          title: pitch.title,
-          domain: pitch.domain,
-          fundingAmount: pitch.fundingAmount.toString(),
-          equityPercent: pitch.equityPercent,
-          publishedAt: pitch.publishedAt,
-          startup: pitch.startup,
-        },
-        hasInterest: false,
-      })
-    }
-
-    // Has interest — return full detail
+    // Always return full pitch detail — investor needs to read everything before deciding.
+    // hasInterest controls whether the "Express Interest" form is shown in the UI.
     return res.json({
       pitch: { ...pitch, fundingAmount: pitch.fundingAmount.toString() },
-      hasInterest: true,
-      interestStatus: interest.status,
+      hasInterest: !!interest,
+      interestStatus: interest?.status || null,
     })
   } catch (err) {
     next(err)

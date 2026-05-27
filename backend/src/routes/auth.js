@@ -11,7 +11,7 @@ const router = express.Router()
 // Creates a User with status='pending'. Admin must approve before login works.
 router.post('/register', async (req, res, next) => {
   try {
-    const { name, email, password, role, contact_phone } = req.body
+    const { name, email, password, role, contact_phone, verificationNote } = req.body
 
     // Basic validation (plain JS checks — no Zod in v1)
     if (!name || !email || !password || !role) {
@@ -23,6 +23,14 @@ router.post('/register', async (req, res, next) => {
     // Admins are seeded only — you cannot self-register as admin
     if (!['investor', 'startup'].includes(role)) {
       return res.status(400).json({ error: 'Role must be investor or startup' })
+    }
+    // Verification note is mandatory — admin needs this to review the registration
+    if (!verificationNote || verificationNote.trim().length < 20) {
+      return res.status(400).json({
+        error: role === 'startup'
+          ? 'Please describe your startup (at least 20 characters)'
+          : 'Please describe your investment background (at least 20 characters)',
+      })
     }
 
     // Email must be unique
@@ -42,6 +50,7 @@ router.post('/register', async (req, res, next) => {
         role,
         status: 'pending',
         contactPhone: contact_phone || null,
+        verificationNote: verificationNote.trim(),
       },
     })
 
