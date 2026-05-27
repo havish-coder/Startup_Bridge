@@ -58,6 +58,9 @@ router.get('/:id', async (req, res, next) => {
     // Owner can always see their own pitch
     if (pitch.startupId === req.user.id) return res.json({ pitch: pitchResponse })
 
+    // Admin can see any pitch
+    if (req.user.role === 'admin') return res.json({ pitch: pitchResponse })
+
     return res.status(403).json({ error: 'Access denied' })
   } catch (err) {
     next(err)

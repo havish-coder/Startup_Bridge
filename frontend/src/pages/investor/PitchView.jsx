@@ -32,6 +32,7 @@ export default function PitchView() {
   const [pitch, setPitch] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hasInterest, setHasInterest] = useState(false)
+  const [interestStatus, setInterestStatus] = useState(null)
   const [globalPending, setGlobalPending] = useState(false)
   const [showInterestForm, setShowInterestForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -49,6 +50,7 @@ export default function PitchView() {
         ])
         setPitch(resPitch.data.pitch)
         setHasInterest(resPitch.data.hasInterest)
+        setInterestStatus(resPitch.data.interestStatus || null)
         
         const pending = resInterests.data.interests.some(i => i.status === 'pending')
         setGlobalPending(pending)
@@ -89,10 +91,7 @@ export default function PitchView() {
     )
   }
 
-
-
-  // Full pitch detail
-  const colorClass = domainColors[pitch.domain] || domainColors.Other
+  const colorClass = domainColors[pitch?.domain] || domainColors.Other
 
   return (
     <Layout>
@@ -135,18 +134,24 @@ export default function PitchView() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Problem</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{pitch.problem}</p>
+          {hasInterest ? (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-1">Problem</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">{pitch.problem}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-1">Solution</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">{pitch.solution}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Solution</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{pitch.solution}</p>
+          ) : (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              Express interest to unlock the full pitch — problem statement, solution, and pitch deck.
             </div>
-          </div>
+          )}
 
-          {pitch.deckFile && (
+          {hasInterest && pitch.deckFile && (
             <div className="mt-6 pt-4 border-t border-gray-100">
               <a
                 href={`/api/files/${pitch.deckFile.id}`}
@@ -159,6 +164,14 @@ export default function PitchView() {
                 </svg>
                 Download Pitch Deck ({pitch.deckFile.originalName})
               </a>
+            </div>
+          )}
+          {hasInterest && interestStatus && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <span className="text-xs text-gray-500">Interest status: </span>
+              <span className={`text-xs font-semibold ${interestStatus === 'accepted' ? 'text-green-600' : interestStatus === 'denied' ? 'text-red-600' : 'text-amber-600'}`}>
+                {interestStatus.toUpperCase()}
+              </span>
             </div>
           )}
 

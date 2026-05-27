@@ -63,9 +63,6 @@ router.get('/:id', async (req, res, next) => {
 
     if (!pitch) return res.status(404).json({ error: 'Pitch not found' })
 
-    const pitchResponse = { ...pitch, fundingAmount: pitch.fundingAmount.toString() }
-
-    let hasInterest = false
     const interest = await prisma.interest.findUnique({
       where: {
         pitchId_investorId: {
@@ -74,9 +71,30 @@ router.get('/:id', async (req, res, next) => {
         },
       },
     })
-    if (interest) hasInterest = true
 
-    return res.json({ pitch: pitchResponse, hasInterest })
+    // No interest yet — return card-level data only so the investor can
+    // see enough to decide, but not the full pitch (problem/solution/deck).
+    if (!interest) {
+      return res.json({
+        pitch: {
+          id: pitch.id,
+          title: pitch.title,
+          domain: pitch.domain,
+          fundingAmount: pitch.fundingAmount.toString(),
+          equityPercent: pitch.equityPercent,
+          publishedAt: pitch.publishedAt,
+          startup: pitch.startup,
+        },
+        hasInterest: false,
+      })
+    }
+
+    // Has interest — return full detail
+    return res.json({
+      pitch: { ...pitch, fundingAmount: pitch.fundingAmount.toString() },
+      hasInterest: true,
+      interestStatus: interest.status,
+    })
   } catch (err) {
     next(err)
   }
