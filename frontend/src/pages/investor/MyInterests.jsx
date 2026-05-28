@@ -86,9 +86,19 @@ export default function MyInterests() {
                 <p className="text-sm text-gray-600">{interest.message}</p>
               </div>
 
-              <div className="mt-2 text-xs text-gray-400">
-                Submitted {new Date(interest.createdAt).toLocaleDateString()}
-                {interest.respondedAt && ` • Responded ${new Date(interest.respondedAt).toLocaleDateString()}`}
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                <div className="text-xs text-gray-400">
+                  Submitted {new Date(interest.createdAt).toLocaleDateString()}
+                  {interest.respondedAt && ` • Responded ${new Date(interest.respondedAt).toLocaleDateString()}`}
+                </div>
+                {interest.negotiationId && (
+                  <Link
+                    to={`/negotiation/${interest.negotiationId}`}
+                    className="text-xs text-indigo-600 hover:text-indigo-900 font-bold flex items-center gap-1 bg-indigo-50 px-2.5 py-1 rounded-md"
+                  >
+                    Enter Negotiation Chat Room →
+                  </Link>
+                )}
               </div>
             </Card>
           ))}

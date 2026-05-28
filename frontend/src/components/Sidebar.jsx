@@ -31,7 +31,12 @@ export default function Sidebar() {
           </>
         )}
         {user?.role === 'startup' && (
-          <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
+          <>
+            <NavLink to="/startup/dashboard" className={linkClass}>Dashboard</NavLink>
+            <NavLink to="/startup/create" className={linkClass}>Create Pitch</NavLink>
+            <NavLink to="/startup/pitches" className={linkClass}>My Pitches</NavLink>
+            <NavLink to="/startup/negotiations" className={linkClass}>Negotiations</NavLink>
+          </>
         )}
       </nav>
       <p className="mt-6 px-4 text-xs text-gray-400">Signed in as {user?.role}</p>

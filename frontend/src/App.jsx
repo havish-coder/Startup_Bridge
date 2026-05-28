@@ -18,12 +18,31 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminNegotiations from './pages/admin/AdminNegotiations'
 import AdminMessages from './pages/admin/AdminMessages'
 
+// startup pages
+import StartupDashboard from './pages/startup/StartupDashboard'
+import CreatePitch from './pages/startup/CreatePitch'
+import MyPitches from './pages/startup/MyPitches'
+import PitchDetails from './pages/startup/PitchDetails'
+import Negotiations from './pages/startup/Negotiations'
+import NegotiationChat from './pages/shared/NegotiationChat'
+
 // Role-based redirect from /dashboard
 function DashboardRedirect() {
   const { user } = useAuth()
-  if (user?.role === 'investor') return <Navigate to="/investor/feed" replace />
-  if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />
-  return <Dashboard />
+
+  if (user?.role === 'investor') {
+    return <Navigate to="/investor/feed" replace />
+  }
+
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+
+  if (user?.role === 'startup') {
+    return <Navigate to="/startup/dashboard" replace />
+  }
+
+  return <Navigate to="/login" replace />
 }
 
 export default function App() {
@@ -75,6 +94,59 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyInterests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/startup/dashboard"
+            element={
+              <ProtectedRoute>
+                <StartupDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/startup/create"
+            element={
+              <ProtectedRoute>
+                <CreatePitch />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/startup/pitches"
+            element={
+              <ProtectedRoute>
+                <MyPitches />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/startup/pitches/:id"
+            element={
+              <ProtectedRoute>
+                <PitchDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/startup/negotiations"
+            element={
+              <ProtectedRoute>
+                <Negotiations />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/negotiation/:id"
+            element={
+              <ProtectedRoute>
+                <NegotiationChat />
               </ProtectedRoute>
             }
           />
