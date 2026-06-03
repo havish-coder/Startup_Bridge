@@ -85,7 +85,48 @@ router.delete('/users/:id', async (req, res, next) => {
       },
     })
     if (activeNeg) return res.status(409).json({ error: 'User has an active negotiation — close it first' })
-    await prisma.user.delete({ where: { id: user.id } })
+
+    // Delete the user and everything that references them, in FK-safe order
+    // (children before parents). A plain user.delete() throws a foreign-key
+    // error for anyone who ever sent a message, got a notification, etc.
+    const pitchIds = (
+      await prisma.pitch.findMany({ where: { startupId: user.id }, select: { id: true } })
+    ).map((p) => p.id)
+    const negIds = (
+      await prisma.negotiation.findMany({ where: { startupId: user.id }, select: { id: true } })
+    ).map((n) => n.id)
+
+    await prisma.$transaction(async (tx) => {
+      // Messages in the user's rooms (from anyone) + any the user sent elsewhere
+      await tx.message.deleteMany({
+        where: { OR: [{ negotiationId: { in: negIds } }, { senderId: user.id }] },
+      })
+      // Interests on the user's pitches, in the user's rooms, or made by the user
+      await tx.interest.deleteMany({
+        where: {
+          OR: [{ pitchId: { in: pitchIds } }, { negotiationId: { in: negIds } }, { investorId: user.id }],
+        },
+      })
+      // Negotiations the user owns as the startup
+      await tx.negotiation.deleteMany({ where: { startupId: user.id } })
+      // Detach the user from rooms where they were the accepted investor on
+      // someone else's (now concluded/failed) deal
+      await tx.negotiation.updateMany({
+        where: { acceptedInvestorId: user.id },
+        data: { acceptedInvestorId: null },
+      })
+      await tx.notification.deleteMany({ where: { userId: user.id } })
+      // Detach any pitch (incl. other users') that points at this user's files,
+      // then delete the pitches and files the user owns
+      await tx.pitch.updateMany({
+        where: { deckFile: { ownerUserId: user.id } },
+        data: { deckFileId: null },
+      })
+      await tx.pitch.deleteMany({ where: { startupId: user.id } })
+      await tx.file.deleteMany({ where: { ownerUserId: user.id } })
+      await tx.user.delete({ where: { id: user.id } })
+    })
+
     console.log(`[ADMIN] Deleted user ${user.email}`)
     res.json({ message: 'User deleted' })
   } catch (err) { next(err) }

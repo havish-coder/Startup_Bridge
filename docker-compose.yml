@@ -10,6 +10,44 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    # JWT_SECRET and other secrets are read from backend/.env.
+    # In real production, inject these via your platform's secret manager
+    # instead of an env file.
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override the host: inside the compose network Postgres is reachable
+      # as "postgres", not 127.0.0.1.
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/startupbridge
+      FRONTEND_URL: http://localhost:8080
+      PORT: 4000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Uploaded files live on disk — a named volume keeps them across restarts.
+    # NOTE: this still doesn't scale horizontally; move to S3/R2 for real prod.
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
 
 volumes:
   postgres_data:
+  uploads_data:

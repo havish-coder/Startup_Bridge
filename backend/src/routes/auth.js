@@ -1,11 +1,46 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { z } from 'zod'
 import { rateLimit } from 'express-rate-limit'
 import prisma from '../prisma.js'
 import { requireAuth } from '../middleware/requireAuth.js'
+import { parseBody } from '../lib/validate.js'
 
 const router = express.Router()
+
+// ── Validation schemas ────────────────────────────────────────────
+// Email is trimmed + lowercased so sign-up and login are case-insensitive
+// and we don't end up with duplicate accounts that differ only by case.
+const registerSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required'),
+    email: z.string().trim().toLowerCase().email('A valid email is required'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    // Admins are seeded only — you cannot self-register as admin
+    role: z.enum(['investor', 'startup'], { error: 'Role must be investor or startup' }),
+    contact_phone: z.string().trim().optional(),
+    verificationNote: z.string().optional(),
+  })
+  // Verification note is mandatory — admin needs this to review the registration.
+  // Message is role-specific.
+  .superRefine((data, ctx) => {
+    if (!data.verificationNote || data.verificationNote.trim().length < 20) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['verificationNote'],
+        message:
+          data.role === 'startup'
+            ? 'Please describe your startup (at least 20 characters)'
+            : 'Please describe your investment background (at least 20 characters)',
+      })
+    }
+  })
+
+const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Email and password are required'),
+  password: z.string().min(1, 'Email and password are required'),
+})
 
 // Rate limiter for login — max 10 attempts per IP per 15 minutes.
 // Prevents brute-force password attacks. Returns 429 when limit is hit.
@@ -32,27 +67,10 @@ const registerLimiter = rateLimit({
 // Creates a User with status='pending'. Admin must approve before login works.
 router.post('/register', registerLimiter, async (req, res, next) => {
   try {
-    const { name, email, password, role, contact_phone, verificationNote } = req.body
-
-    // Basic validation (plain JS checks — no Zod in v1)
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: 'name, email, password and role are required' })
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' })
-    }
-    // Admins are seeded only — you cannot self-register as admin
-    if (!['investor', 'startup'].includes(role)) {
-      return res.status(400).json({ error: 'Role must be investor or startup' })
-    }
-    // Verification note is mandatory — admin needs this to review the registration
-    if (!verificationNote || verificationNote.trim().length < 20) {
-      return res.status(400).json({
-        error: role === 'startup'
-          ? 'Please describe your startup (at least 20 characters)'
-          : 'Please describe your investment background (at least 20 characters)',
-      })
-    }
+    const { name, email, password, role, contact_phone, verificationNote } = parseBody(
+      registerSchema,
+      req.body
+    )
 
     // Email must be unique
     const existing = await prisma.user.findUnique({ where: { email } })
@@ -86,10 +104,7 @@ router.post('/register', registerLimiter, async (req, res, next) => {
 // Verifies credentials, checks status, returns a JWT valid for 7 days.
 router.post('/login', loginLimiter, async (req, res, next) => {
   try {
-    const { email, password } = req.body
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' })
-    }
+    const { email, password } = parseBody(loginSchema, req.body)
 
     const user = await prisma.user.findUnique({ where: { email } })
     // Same generic message whether email or password is wrong (don't leak which)
