@@ -1,15 +1,36 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { rateLimit } from 'express-rate-limit'
 import prisma from '../prisma.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = express.Router()
 
+// Rate limiter for login — max 10 attempts per IP per 15 minutes.
+// Prevents brute-force password attacks. Returns 429 when limit is hit.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,   // sends RateLimit-* headers so clients know the limit
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts — please try again in 15 minutes' },
+})
+
+// Rate limiter for register — max 5 registrations per IP per hour.
+// Prevents spam account creation.
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registrations from this IP — please try again later' },
+})
+
 // POST /api/auth/register
 // Body: { name, email, password, role, contact_phone }
 // Creates a User with status='pending'. Admin must approve before login works.
-router.post('/register', async (req, res, next) => {
+router.post('/register', registerLimiter, async (req, res, next) => {
   try {
     const { name, email, password, role, contact_phone, verificationNote } = req.body
 
@@ -63,7 +84,7 @@ router.post('/register', async (req, res, next) => {
 // POST /api/auth/login
 // Body: { email, password }
 // Verifies credentials, checks status, returns a JWT valid for 7 days.
-router.post('/login', async (req, res, next) => {
+router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body
     if (!email || !password) {
